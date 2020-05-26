@@ -1,0 +1,9 @@
+{
+    "version": "2.0",
+    "logging": {
+        "logLevel": {
+            "LetsEncryptManager.Core.CertRenewer": "Information",
+            "LetsEncryptManager.Core.Orchestration.CertRenewalOrchestrator": "Information"
+        }
+    }
+}

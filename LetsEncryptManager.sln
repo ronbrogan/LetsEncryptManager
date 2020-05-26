@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30011.22
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LetsEncryptManager.App", "LetsEncryptManager.App\LetsEncryptManager.App.csproj", "{EC518686-CD3D-469A-B60F-085185429FFC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LetsEncryptManager.Core", "LetsEncryptManager.Core\LetsEncryptManager.Core.csproj", "{64CCC2B8-D75F-4F20-8471-A06542240F07}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LetsEncryptManager.Cli", "LetsEncryptManager.Console\LetsEncryptManager.Cli.csproj", "{1B9AA40D-D5F2-455D-863C-D22842D53BB3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EC518686-CD3D-469A-B60F-085185429FFC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC518686-CD3D-469A-B60F-085185429FFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC518686-CD3D-469A-B60F-085185429FFC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC518686-CD3D-469A-B60F-085185429FFC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{64CCC2B8-D75F-4F20-8471-A06542240F07}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64CCC2B8-D75F-4F20-8471-A06542240F07}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64CCC2B8-D75F-4F20-8471-A06542240F07}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64CCC2B8-D75F-4F20-8471-A06542240F07}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1B9AA40D-D5F2-455D-863C-D22842D53BB3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B9AA40D-D5F2-455D-863C-D22842D53BB3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B9AA40D-D5F2-455D-863C-D22842D53BB3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B9AA40D-D5F2-455D-863C-D22842D53BB3}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9B703C81-B951-4DA1-8E72-2A198A19EA7C}
+	EndGlobalSection
+EndGlobal
