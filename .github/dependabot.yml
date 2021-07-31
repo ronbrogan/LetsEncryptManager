@@ -6,16 +6,3 @@ updates:
     interval: daily
     time: "13:00"
   open-pull-requests-limit: 10
-  ignore:
-  - dependency-name: Azure.Storage.Blobs
-    versions:
-    - 12.8.0
-    - 12.8.1
-  - dependency-name: Microsoft.Extensions.Configuration.AzureAppConfiguration
-    versions:
-    - 4.1.0
-    - 4.2.0
-  - dependency-name: Microsoft.Azure.Management.ResourceManager.Fluent
-    versions:
-    - 1.36.1
-    - 1.37.0
