@@ -1,7 +1,6 @@
 ﻿using ACMESharp.Authorizations;
 using ACMESharp.Protocol;
 using LetsEncryptManager.Core.Account;
-using LetsEncryptManager.Core.CertificateOperations;
 using LetsEncryptManager.Core.CertificateStore;
 using LetsEncryptManager.Core.Challenges;
 using LetsEncryptManager.Core.Configuration;
@@ -12,6 +11,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -75,8 +75,10 @@ namespace LetsEncryptManager.Core
 
             logger.LogInformation("[{0}]@{1}ms Fetching cert and generating PFX", certName, stopwatch.ElapsedMilliseconds);
             var certBytes = await client.GetOrderCertificateAsync(order);
-            var privateBytes = keys.PrivateKey.Export(PkiEncodingFormat.Pem);
-            var pfx = CertExporter.ExportPfx(certBytes, privateBytes);
+            using var cert = new X509Certificate2(certBytes);
+            var pkiCert = PkiCertificate.From(cert);
+
+            var pfx = pkiCert.Export(PkiArchiveFormat.Pkcs12, keys.PrivateKey);
 
             await this.certStore.StorePfxCertificateAsync(certName, pfx);
             logger.LogInformation("[{0}]@{1}ms Saved certificate to '{2}'", certName, stopwatch.ElapsedMilliseconds, certStore.GetType().Name);
