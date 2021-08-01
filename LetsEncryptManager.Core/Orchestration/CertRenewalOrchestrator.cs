@@ -11,7 +11,7 @@ namespace LetsEncryptManager.Core.Orchestration
 {
     public class CertRenewalOrchestrator
     {
-        private const int CertExpirationThreshold_Days = 10;
+        private const int CertExpirationThreshold_Days = 30;
 
         private readonly KnownCertificatesConfig config;
         private readonly ICertificateStore certStore;
@@ -95,6 +95,8 @@ namespace LetsEncryptManager.Core.Orchestration
                 logger.LogInformation("Renwing '{0}' as all hostnames are not contained in cert SAN", cert);
                 return true;
             }
+
+            logger.LogInformation("Skipping renew for '{0}'", cert);
 
             return false;
         }
