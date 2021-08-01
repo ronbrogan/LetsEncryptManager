@@ -15,7 +15,7 @@ namespace LetsEncryptManager.App
         }
 
         [FunctionName("RecurringRenewalEvaluation")]
-        public async Task Run([TimerTrigger("0 * * * *")]TimerInfo myTimer, ILogger log)
+        public async Task Run([TimerTrigger("0 0 * * * *")]TimerInfo myTimer, ILogger log)
         {
             log.LogInformation("Kicking off cert renewal task...");
 
