@@ -38,7 +38,7 @@ namespace LetsEncryptManager.Core.Challenges
                 throw new Exception("Couldn't parse provided DNS type: " + type);
             }
 
-            Func<Zone, bool> selector = z => Regex.Match(fullyQualifiedName, z.Name + "$").Success;
+            Func<Zone, bool> selector = z => Regex.Match(fullyQualifiedName, z.Name + "$", RegexOptions.IgnoreCase).Success;
 
             var zoneClient = this.dnsClient.Zones;
             var zones = await zoneClient.ListAsync();
