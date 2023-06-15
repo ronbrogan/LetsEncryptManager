@@ -3,10 +3,12 @@ using LetsEncryptManager.Core.Configuration;
 using Microsoft.Azure.Management.Dns;
 using Microsoft.Azure.Management.Dns.Models;
 using Microsoft.Azure.Management.ResourceManager.Fluent.Core;
+using Microsoft.Extensions.Logging;
 using Microsoft.Rest;
 using Microsoft.Rest.Azure;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
@@ -17,13 +19,16 @@ namespace LetsEncryptManager.Core.Challenges
 {
     public class AzureDnsChallengeHandler : IDnsChallengeHandler, IDisposable
     {
-        private DnsManagementClient dnsClient;
+        private readonly ILogger<AzureDnsChallengeHandler> logger;
+        private readonly DnsManagementClient dnsClient;
 
-        public AzureDnsChallengeHandler(ManagerConfig config)
+        public AzureDnsChallengeHandler(ManagerConfig config,
+            ILogger<AzureDnsChallengeHandler> logger)
         {
             var cred = new TokenCredentials(new AzureIdentityProvider("https://management.azure.com/"));
             this.dnsClient = new DnsManagementClient(cred);
             this.dnsClient.SubscriptionId = config.SubscriptionId;
+            this.logger = logger;
         }
 
         public void Dispose()
@@ -37,6 +42,8 @@ namespace LetsEncryptManager.Core.Challenges
             {
                 throw new Exception("Couldn't parse provided DNS type: " + type);
             }
+
+            logger.LogInformation("[Azure DNS]: Handling {0} record, {1}:{2}", type, fullyQualifiedName, value);
 
             Func<Zone, bool> selector = z => Regex.Match(fullyQualifiedName, z.Name + "$", RegexOptions.IgnoreCase).Success;
 
@@ -61,10 +68,26 @@ namespace LetsEncryptManager.Core.Challenges
 
             var relativeName = fullyQualifiedName.Replace("." + zone.Name, "");
 
+            logger.LogInformation("[Azure DNS]: Using relative name {0}", relativeName);
+
             var zoneResouce = ResourceId.FromString(zone.Id);
 
             var set = await GetOrCreateRecordSetAsync(dnsClient.RecordSets, recordType, zoneResouce.ResourceGroupName, zone.Name, relativeName, value);
             var newSet = await dnsClient.RecordSets.CreateOrUpdateAsync(zoneResouce.ResourceGroupName, zone.Name, relativeName, recordType, set);
+
+            while(true)
+            {
+
+                logger.LogInformation("[Azure DNS]: Polling record set for updated value");
+
+                var fetched = await dnsClient.RecordSets.GetAsync(zoneResouce.ResourceGroupName, zone.Name, relativeName, recordType);
+
+                if (fetched.TxtRecords.Any(t => t.Value.Any(v => v == value)))
+                {
+                    logger.LogInformation("[Azure DNS]: Updated value found, done!");
+                    break;
+                }
+            }
 
             return new AzureCleanableDnsRecord(this, zoneResouce.ResourceGroupName, zone.Name, newSet, recordType, value);
         }

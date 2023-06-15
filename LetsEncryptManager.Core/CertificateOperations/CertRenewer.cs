@@ -5,6 +5,7 @@ using LetsEncryptManager.Core.CertificateStore;
 using LetsEncryptManager.Core.Challenges;
 using LetsEncryptManager.Core.Configuration;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using PKISharp.SimplePKI;
 using System;
 using System.Collections.Generic;
@@ -109,31 +110,55 @@ namespace LetsEncryptManager.Core
                     client.Signer);
 
                 // Create requested DNS record, keep reference to remove after challenge passes
-                logger.LogInformation("[{0}]@{1}ms Creating DNS record '{2}'", auth.Identifier, stopwatch.ElapsedMilliseconds, cd.DnsRecordName);
+                logger.LogInformation("[{0}]@{1}ms Creating DNS record '{2}'", auth.Identifier.Value, stopwatch.ElapsedMilliseconds, cd.DnsRecordName);
                 var createdRecord = await this.dnsHandler.HandleAsync(cd.DnsRecordType, cd.DnsRecordName, cd.DnsRecordValue);
-                logger.LogInformation("[{0}]@{1}ms Created DNS record successfully", auth.Identifier, stopwatch.ElapsedMilliseconds);
+                logger.LogInformation("[{0}]@{1}ms Created DNS record successfully", auth.Identifier.Value, stopwatch.ElapsedMilliseconds);
 
-                var retries = 0;
-
-                do
+                try
                 {
-                    Thread.Sleep(1000 * retries);
+                    await Task.Delay(2000);
 
-                    logger.LogInformation("[{0}]@{1}ms Answering challenge", auth.Identifier, stopwatch.ElapsedMilliseconds);
+                    logger.LogInformation("[{0}]@{1}ms Answering challenge", auth.Identifier.Value, stopwatch.ElapsedMilliseconds);
                     dnsChallenge = await client.AnswerChallengeAsync(dnsChallenge.Url);
-                    auth = await client.GetAuthorizationDetailsAsync(authUrl);
 
-                    retries++;
-                } while (auth.Status != "valid" && retries < 5);
+                    var retries = 1;
+                    do
+                    {
+                        await Task.Delay(1000 * retries);
 
-                if (auth.Status != "valid")
-                {
-                    exceptions.Add(new Exception($"Challenge validation was unsuccessful: [{dnsChallenge.Status}]{dnsChallenge.Error}\r\nAuthStatus: [{auth.Status}]"));
+                        try
+                        {
+
+                            auth = await client.GetAuthorizationDetailsAsync(authUrl);
+                            logger.LogInformation("[{0}]@{1}ms challenge status: {2}", auth.Identifier.Value, stopwatch.ElapsedMilliseconds, auth.Status);
+                        }
+                        catch (Exception e)
+                        {
+                            exceptions.Add(e);
+                            logger.LogError(e, "[{0}]@{1}ms challenge exception dns: {2}, {3}, auth: {4}", auth.Identifier.Value, stopwatch.ElapsedMilliseconds, dnsChallenge.Error, dnsChallenge.Url, auth.Status);
+                        }
+
+                        if(auth.Status == "invalid")
+                        {
+                            var authJson = JsonConvert.SerializeObject(auth, Formatting.Indented);
+                            logger.LogInformation("[{0}]@{1}ms challenge is invalid: {2}", auth.Identifier.Value, stopwatch.ElapsedMilliseconds, authJson);
+                            break;
+                        }
+
+                        retries++;
+                    } while (auth.Status != "valid" && retries <= 5);
+
+                    if (auth.Status != "valid")
+                    {
+                        exceptions.Add(new Exception($"Challenge validation was unsuccessful: [{dnsChallenge.Status}]{dnsChallenge.Error}\r\nAuthStatus: [{auth.Status}]"));
+                    }
                 }
-
-                logger.LogInformation("[{0}]@{1}ms Removing DNS record '{2}'", auth.Identifier, stopwatch.ElapsedMilliseconds, cd.DnsRecordName);
-                await createdRecord.CleanAsync();
-                logger.LogInformation("[{0}]@{1}ms Removed DNS record successfully", auth.Identifier, stopwatch.ElapsedMilliseconds);
+                finally
+                {
+                    logger.LogInformation("[{0}]@{1}ms Removing DNS record '{2}'", auth.Identifier.Value, stopwatch.ElapsedMilliseconds, cd.DnsRecordName);
+                    await createdRecord.CleanAsync();
+                    logger.LogInformation("[{0}]@{1}ms Removed DNS record successfully", auth.Identifier.Value, stopwatch.ElapsedMilliseconds);
+                }
             }
 
             if (exceptions.Any())
