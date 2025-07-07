@@ -24,12 +24,12 @@ namespace LetsEncryptManager.Cli
         {
             Exception ex = null;
 
-            //var azConfigUrl = Environment.GetEnvironmentVariable(AzConfigKey);
-            //
-            //if(azConfigUrl == null)
-            //{
-            //    throw new Exception($"Couldn't get Azure App Configuration URL, set '{AzConfigKey}'");
-            //}
+            var azConfigUrl = Environment.GetEnvironmentVariable(AzConfigKey);
+
+            if (azConfigUrl == null)
+            {
+                throw new Exception($"Couldn't get Azure App Configuration URL, set '{AzConfigKey}'");
+            }
 
             var builder = new HostBuilder()
                 .ConfigureAppConfiguration(cfg => cfg
