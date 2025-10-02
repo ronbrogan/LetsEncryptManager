@@ -65,7 +65,7 @@ stages:
             displayName: 'Azure functions app deploy'
             inputs:
               azureSubscription: 'Visual Studio Enterprise(533de7ba-f01c-404b-bd44-3812b36bb853)'
-              appType: 'functionApp'
-              appName: '$(functionAppName)'
+              appType: 'functionAppLinux'
+              appName: 'LetsEncryptManager2'
               package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
-              deploymentMethod: 'zipDeploy'
+              runtimeStack: 'DOTNET-ISOLATED|9.0'
