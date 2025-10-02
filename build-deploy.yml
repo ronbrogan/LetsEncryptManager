@@ -61,10 +61,11 @@ stages:
         deploy:
 
           steps:
-          - task: AzureFunctionApp@1
+          - task: AzureFunctionApp@2
             displayName: 'Azure functions app deploy'
             inputs:
               azureSubscription: 'Visual Studio Enterprise(533de7ba-f01c-404b-bd44-3812b36bb853)'
               appType: 'functionAppLinux'
               appName: 'LetsEncryptManager2'
               package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
+              isFlexConsumption: true
