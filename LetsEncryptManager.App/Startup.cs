@@ -42,7 +42,7 @@ namespace LetsEncryptManager.App
                 .AddSingleton<AzureKeyVaultStore>()
                 .AddSingleton<IAccountStore>(s => s.GetService<AzureKeyVaultStore>())
                 .AddSingleton<ICertificateStore>(s => s.GetService<AzureKeyVaultStore>())
-                .AddSingleton<IDnsChallengeHandler, AzureDnsChallengeHandler>()
+                .AddSingleton<IDnsChallengeHandler, AzureDnsChallengeHandler2>()
                 .AddSingleton<CertRenewer>()
                 .AddSingleton<CertRenewalOrchestrator>();
         }

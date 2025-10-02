@@ -15,11 +15,11 @@ namespace LetsEncryptManager.Core.Challenges
 {
     public class AzureDnsChallengeHandler2 : IDnsChallengeHandler
     {
-        private readonly ILogger<AzureDnsChallengeHandler> logger;
+        private readonly ILogger<AzureDnsChallengeHandler2> logger;
         private readonly ArmClient client;
 
         public AzureDnsChallengeHandler2(ManagerConfig config,
-            ILogger<AzureDnsChallengeHandler> logger)
+            ILogger<AzureDnsChallengeHandler2> logger)
         {
             this.logger = logger;
 

@@ -34,10 +34,10 @@ namespace LetsEncryptManager.Cli
             var builder = new HostBuilder()
                 .ConfigureAppConfiguration(cfg => cfg
                     // You can use appsettings.json files instead of Az AppConfig if desired
-                    .AddJsonFile("local.appsettings.json")
-                    //.AddAzureAppConfiguration(az =>
-                    //    az.Connect(new Uri(azConfigUrl), new DefaultAzureCredential())
-                    //)
+                    //.AddJsonFile("local.appsettings.json")
+                    .AddAzureAppConfiguration(az =>
+                        az.Connect(new Uri(azConfigUrl), new DefaultAzureCredential())
+                    )
                     .AddEnvironmentVariables())
                 .ConfigureServices((host,svc) =>
                 {
@@ -48,10 +48,10 @@ namespace LetsEncryptManager.Cli
                         .AddSingleton<AzureKeyVaultStore>()
                         .AddSingleton<IAccountStore>(s => s.GetService<AzureKeyVaultStore>())
                         .AddSingleton<ICertificateStore>(s => new CompositeCertificateStore(
-                            //s.GetService<AzureKeyVaultStore>(),
-                            new FileSystemCertificateStore("D:\\letsencrypt")
+                            s.GetService<AzureKeyVaultStore>()
+                            //new FileSystemCertificateStore("D:\\letsencrypt")
                         ))
-                        .AddSingleton<IDnsChallengeHandler, AzureDnsChallengeHandler>()
+                        .AddSingleton<IDnsChallengeHandler, AzureDnsChallengeHandler2>()
                         .AddSingleton<CertRenewer>()
                         .AddSingleton<CertRenewalOrchestrator>()
                         .AddLogging(l => l.AddConsole());

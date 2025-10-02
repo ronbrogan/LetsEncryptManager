@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "LetsEncryptManager.Cli": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "CertAzConfigUrl": "https://letsencryptmanagerconfig.azconfig.io"
+      }
+    }
+  }
+}
