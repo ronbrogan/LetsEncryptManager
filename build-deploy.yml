@@ -8,7 +8,7 @@ trigger:
 
 variables:
   # Agent VM image name
-  vmImageName: 'vs2017-win2016'
+  vmImageName: 'ubuntu-latest'
 
   # Working Directory
   workingDirectory: '$(System.DefaultWorkingDirectory)/LetsEncryptManager.App'
@@ -30,7 +30,18 @@ stages:
         command: 'build'
         projects: |
           $(workingDirectory)/*.csproj
-        arguments: --output $(System.DefaultWorkingDirectory)/publish_output --configuration Release
+        arguments: --configuration Release
+
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet publish'
+      inputs:
+        command: publish
+        arguments: '--configuration Release --output $(System.DefaultWorkingDirectory)/publish_output'
+        projects: |
+          $(workingDirectory)/*.csproj
+        publishWebProjects: false
+        modifyOutputPath: false
+        zipAfterPublish: false
 
     - task: ArchiveFiles@2
       displayName: 'Archive files'
@@ -61,10 +72,12 @@ stages:
         deploy:
 
           steps:
-          - task: AzureFunctionApp@1
+          - task: AzureFunctionApp@2
             displayName: 'Azure functions app deploy'
             inputs:
-              azureSubscription: '$(azureSubscription)'
-              appType: functionApp
-              appName: $(functionAppName)
+              azureSubscription: 'Visual Studio Enterprise(533de7ba-f01c-404b-bd44-3812b36bb853)'
+              appType: 'functionAppLinux'
+              appName: 'LetsEncryptManager2'
               package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
+              isFlexConsumption: true
+              deploymentMethod: "auto"
