@@ -30,7 +30,18 @@ stages:
         command: 'build'
         projects: |
           $(workingDirectory)/*.csproj
-        arguments: --output $(System.DefaultWorkingDirectory)/publish_output --configuration Release
+        arguments: --configuration Release
+
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet publish'
+      inputs:
+        command: publish
+        arguments: '--configuration Release --output $(System.DefaultWorkingDirectory)/publish_output'
+        projects: |
+          $(workingDirectory)/*.csproj
+        publishWebProjects: false
+        modifyOutputPath: false
+        zipAfterPublish: false
 
     - task: ArchiveFiles@2
       displayName: 'Archive files'
@@ -69,3 +80,4 @@ stages:
               appName: 'LetsEncryptManager2'
               package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
               isFlexConsumption: true
+              deploymentMethod: "auto"
