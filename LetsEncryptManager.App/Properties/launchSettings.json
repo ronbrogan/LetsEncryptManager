@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "LetsEncryptManager.App": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "AzureConfigUrl": "https://letsencryptmanagerconfig.azconfig.io"
+      }
+    }
+  }
+}

@@ -1,8 +1,7 @@
 using LetsEncryptManager.Core.Orchestration;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 
@@ -11,16 +10,16 @@ namespace LetsEncryptManager.App
     public class OnDemandRenewalEvaluation
     {
         private readonly CertRenewalOrchestrator renewalOrchestrator;
+        private readonly ILogger log;
 
-        public OnDemandRenewalEvaluation(CertRenewalOrchestrator renewalOrchestrator)
+        public OnDemandRenewalEvaluation(CertRenewalOrchestrator renewalOrchestrator, ILogger<OnDemandRenewalEvaluation> log)
         {
             this.renewalOrchestrator = renewalOrchestrator;
+            this.log = log;
         }
 
-        [FunctionName("OnDemandRenewalEvaluation")]
-        public async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequest req,
-            ILogger log)
+        [Function("OnDemandRenewalEvaluation")]
+        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequest req)
         {
             log.LogInformation("Kicking off cert renewal task...");
 
