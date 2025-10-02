@@ -68,4 +68,3 @@ stages:
               appType: 'functionAppLinux'
               appName: 'LetsEncryptManager2'
               package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
-              runtimeStack: 'DOTNET-ISOLATED|9.0'
