@@ -1,4 +1,5 @@
-﻿using Azure.Identity;
+﻿using Azure.Core;
+using Azure.Identity;
 using LetsEncryptManager.Core.Configuration;
 using Microsoft.Azure.Management.Dns;
 using Microsoft.Azure.Management.Dns.Models;
@@ -8,7 +9,6 @@ using Microsoft.Rest;
 using Microsoft.Rest.Azure;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
@@ -36,7 +36,7 @@ namespace LetsEncryptManager.Core.Challenges
             this.dnsClient.Dispose();
         }
 
-        public async Task<ICleanableDnsRecord> HandleAsync(string type, string fullyQualifiedName, string value)
+        public async Task<ICleanableDnsRecord> HandleAsync(string type, string fullyQualifiedName, string value, KnownCertificatesConfigEntry config)
         {
             if(Enum.TryParse(type, out RecordType recordType) == false)
             {
@@ -199,7 +199,7 @@ namespace LetsEncryptManager.Core.Challenges
 
             public async Task<AuthenticationHeaderValue> GetAuthenticationHeaderAsync(CancellationToken cancellationToken)
             {
-                var token = await cred.GetTokenAsync(new Azure.Core.TokenRequestContext(new[] { this.scope }));
+                var token = await cred.GetTokenAsync(new TokenRequestContext(new[] { this.scope }));
 
                 return new AuthenticationHeaderValue("Bearer", token.Token);
             }

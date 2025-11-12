@@ -1,4 +1,5 @@
-﻿using Azure.Identity;
+﻿using Azure;
+using Azure.Identity;
 using Azure.ResourceManager;
 using Azure.ResourceManager.Dns;
 using Azure.ResourceManager.Dns.Models;
@@ -26,7 +27,7 @@ namespace LetsEncryptManager.Core.Challenges
             this.client = new ArmClient(new DefaultAzureCredential());
         }
 
-        public async Task<ICleanableDnsRecord> HandleAsync(string type, string fullyQualifiedName, string value)
+        public async Task<ICleanableDnsRecord> HandleAsync(string type, string fullyQualifiedName, string value, KnownCertificatesConfigEntry config)
         {
             if(type != "TXT")
             {
@@ -111,7 +112,7 @@ namespace LetsEncryptManager.Core.Challenges
 
             if (shouldDelete)
             {
-                await record.DeleteAsync(Azure.WaitUntil.Completed);
+                await record.DeleteAsync(WaitUntil.Completed);
             }
             else
             {
@@ -134,7 +135,7 @@ namespace LetsEncryptManager.Core.Challenges
             rrec.Values.Add(value);
             var newRecs = new List<DnsTxtRecordInfo> { rrec };
 
-            var op = await records.CreateOrUpdateAsync(Azure.WaitUntil.Completed, name, ArmDnsModelFactory.DnsTxtRecordData(DnsTxtRecordResource.CreateResourceIdentifier(zone.Data.Id.SubscriptionId, resourceGroup, zoneName, name), name, ttl: 1, txtRecords: newRecs));
+            var op = await records.CreateOrUpdateAsync(WaitUntil.Completed, name, ArmDnsModelFactory.DnsTxtRecordData(DnsTxtRecordResource.CreateResourceIdentifier(zone.Data.Id.SubscriptionId, resourceGroup, zoneName, name), name, ttl: 1, txtRecords: newRecs));
 
             if(!op.HasCompleted || !op.HasValue)
             {

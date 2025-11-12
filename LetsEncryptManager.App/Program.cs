@@ -40,12 +40,12 @@ public static class Program
         builder.ConfigureFunctionsWebApplication();
 
         builder.Services
+            .AddHttpClient()
             .AddApplicationInsightsTelemetryWorkerService()
             .ConfigureFunctionsApplicationInsights()
             .Configure<ManagerConfig>(config.GetSection(nameof(ManagerConfig)))
             .AddTransient(s => s.GetService<IOptions<ManagerConfig>>().Value)
-            .Configure<KnownCertificatesConfig>(config)
-            .AddTransient(s => s.GetService<IOptions<KnownCertificatesConfig>>().Value)
+            .AddSingleton(KnownCertificatesConfig.Bind(config))
             .AddSingleton<AzureKeyVaultStore>()
             .AddSingleton<IAccountStore>(s => s.GetService<AzureKeyVaultStore>())
             .AddSingleton<ICertificateStore>(s => s.GetService<AzureKeyVaultStore>())

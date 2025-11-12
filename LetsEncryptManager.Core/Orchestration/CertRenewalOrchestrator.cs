@@ -48,15 +48,13 @@ namespace LetsEncryptManager.Core.Orchestration
 
             foreach (var cert in config.Certs)
             {
-                var hostnames = cert.Value.Split(',');
-
-                var shouldRenew = await ShouldRenew(cert.Key, hostnames);
+                var shouldRenew = await ShouldRenew(cert.Key, cert.Value);
 
                 if(shouldRenew)
                 {
                     try
                     {
-                        await renewer.RenewCertificate(cert.Key, hostnames);
+                        await renewer.RenewCertificate(cert.Key, cert.Value);
                     }
                     catch(Exception e)
                     {
@@ -67,8 +65,9 @@ namespace LetsEncryptManager.Core.Orchestration
             }
         }
 
-        private async Task<bool> ShouldRenew(string cert, string[] hostnames)
+        private async Task<bool> ShouldRenew(string cert, KnownCertificatesConfigEntry entry)
         {
+            var hostnames = entry.Hostnames;
             var info = await certStore.GetCertInfo(cert);
 
             if (info == null)

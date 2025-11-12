@@ -24,26 +24,28 @@ namespace LetsEncryptManager.Core
         private readonly ILogger logger;
         private readonly CertRenewerConfig config;
         private readonly IAccountStore accountStore;
-        private readonly IDnsChallengeHandler dnsHandler;
+        private readonly DnsProviderFactory dnsProviderFactory;
         private readonly ICertificateStore certStore;
         private Stopwatch stopwatch;
 
         public CertRenewer(ManagerConfig config,
             IAccountStore accountStore,
-            IDnsChallengeHandler dnsHandler,
+            DnsProviderFactory dnsProviderFactory,
             ICertificateStore certStore,
             ILogger<CertRenewer> logger)
         {
             this.logger = logger;
             this.config = new CertRenewerConfig(config.CertContactEmail, config.CertificateAuthorityUrl);
             this.accountStore = accountStore;
-            this.dnsHandler = dnsHandler;
+            this.dnsProviderFactory = dnsProviderFactory;
             this.certStore = certStore;
             this.stopwatch = new Stopwatch();
         }
 
-        public async Task RenewCertificate(string certName, params string[] hostnames)
+        public async Task RenewCertificate(string certName, KnownCertificatesConfigEntry config)
         {
+            var hostnames = config.Hostnames;
+
             this.stopwatch.Restart();
 
             await EnsureClient();
@@ -61,7 +63,7 @@ namespace LetsEncryptManager.Core
             var order = await client.CreateOrderAsync(hostnames);
             logger.LogInformation("[{0}]@{1}ms Created order: {2} ", certName, stopwatch.ElapsedMilliseconds, order.OrderUrl);
 
-            await PerformChallengesAsync(order);
+            await PerformChallengesAsync(order, config);
             logger.LogInformation("[{0}]@{1}ms Challenges complete", certName, stopwatch.ElapsedMilliseconds);
 
             // At this point all authorizations should be valid
@@ -87,7 +89,7 @@ namespace LetsEncryptManager.Core
             stopwatch.Stop();
         }
 
-        private async Task PerformChallengesAsync(OrderDetails order)
+        private async Task PerformChallengesAsync(OrderDetails order, KnownCertificatesConfigEntry config)
         {
             var exceptions = new List<Exception>();
 
@@ -109,9 +111,11 @@ namespace LetsEncryptManager.Core
                     dnsChallenge.Type,
                     client.Signer);
 
+                var dnsHandler = this.dnsProviderFactory.GetDnsProvider(config.DnsProvider);
+
                 // Create requested DNS record, keep reference to remove after challenge passes
                 logger.LogInformation("[{0}]@{1}ms Creating DNS record '{2}'", auth.Identifier.Value, stopwatch.ElapsedMilliseconds, cd.DnsRecordName);
-                var createdRecord = await this.dnsHandler.HandleAsync(cd.DnsRecordType, cd.DnsRecordName, cd.DnsRecordValue);
+                var createdRecord = await dnsHandler.HandleAsync(cd.DnsRecordType, cd.DnsRecordName, cd.DnsRecordValue, config);
                 logger.LogInformation("[{0}]@{1}ms Created DNS record successfully", auth.Identifier.Value, stopwatch.ElapsedMilliseconds);
 
                 try

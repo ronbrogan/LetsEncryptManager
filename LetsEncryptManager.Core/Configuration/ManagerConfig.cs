@@ -8,5 +8,7 @@ namespace LetsEncryptManager.Core.Configuration
         public string? CertificateAuthorityUrl { get; set; }
         public string? SubscriptionId { get; set; }
         public string? KeyVaultUrl { get; set; }
+
+        public string? CloudflareKey { get; set; }
     }
 }

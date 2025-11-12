@@ -3,6 +3,7 @@ using LetsEncryptManager.Core;
 using LetsEncryptManager.Core.Account;
 using LetsEncryptManager.Core.CertificateStore;
 using LetsEncryptManager.Core.Challenges;
+using LetsEncryptManager.Core.Cloudflare;
 using LetsEncryptManager.Core.Configuration;
 using LetsEncryptManager.Core.Orchestration;
 using Microsoft.Extensions.Configuration;
@@ -36,25 +37,38 @@ namespace LetsEncryptManager.Cli
                     // You can use appsettings.json files instead of Az AppConfig if desired
                     //.AddJsonFile("local.appsettings.json")
                     .AddAzureAppConfiguration(az =>
-                        az.Connect(new Uri(azConfigUrl), new DefaultAzureCredential())
+                        az.Connect(new Uri(azConfigUrl), new DefaultAzureCredential()).ConfigureKeyVault(kv =>
+                        {
+                            kv.SetCredential(new DefaultAzureCredential());
+                        })
                     )
                     .AddEnvironmentVariables())
                 .ConfigureServices((host,svc) =>
                 {
+                    svc.AddHttpClient();
+
                     svc.Configure<ManagerConfig>(host.Configuration.GetSection(nameof(ManagerConfig)))
                         .AddTransient(s => s.GetService<IOptions<ManagerConfig>>().Value)
-                        .Configure<KnownCertificatesConfig>(host.Configuration)
-                        .AddTransient(s => s.GetService<IOptions<KnownCertificatesConfig>>().Value)
+                        .AddSingleton(KnownCertificatesConfig.Bind(host.Configuration))
                         .AddSingleton<AzureKeyVaultStore>()
                         .AddSingleton<IAccountStore>(s => s.GetService<AzureKeyVaultStore>())
                         .AddSingleton<ICertificateStore>(s => new CompositeCertificateStore(
                             s.GetService<AzureKeyVaultStore>()
-                            //new FileSystemCertificateStore("D:\\letsencrypt")
+                        //new FileSystemCertificateStore("D:\\letsencrypt")
                         ))
                         .AddSingleton<IDnsChallengeHandler, AzureDnsChallengeHandler2>()
+                        .AddSingleton<CloudflareDnsChallengeHandler>()
+                        .AddSingleton<DnsProviderFactory>()
                         .AddSingleton<CertRenewer>()
                         .AddSingleton<CertRenewalOrchestrator>()
                         .AddLogging(l => l.AddConsole());
+
+                    var cfKey = host.Configuration.GetValue("ManagerConfig:CloudflareKey", string.Empty);
+
+                    svc.AddHttpClient<CloudflareHttpClient>(c =>
+                    {
+                        c.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer");
+                    });
 
                     svc.AddHostedService<CertManagerService>();
                 });

@@ -1,11 +1,12 @@
-﻿using System;
+﻿using LetsEncryptManager.Core.Configuration;
+using System;
 using System.Threading.Tasks;
 
 namespace LetsEncryptManager.Core.Challenges
 {
     public class NullDnsChallengeHandler : IDnsChallengeHandler
     {
-        public Task<ICleanableDnsRecord> HandleAsync(string type, string name, string value)
+        public Task<ICleanableDnsRecord> HandleAsync(string type, string name, string value, KnownCertificatesConfigEntry config)
         {
             Console.WriteLine($"Create [{type}] {name}:{value}");
             return Task.FromResult((ICleanableDnsRecord)new NullCleanableRecord(type, name, value));
