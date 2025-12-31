@@ -56,7 +56,7 @@ namespace LetsEncryptManager.Cli
                             s.GetService<AzureKeyVaultStore>()
                         //new FileSystemCertificateStore("D:\\letsencrypt")
                         ))
-                        .AddSingleton<IDnsChallengeHandler, AzureDnsChallengeHandler2>()
+                        .AddSingleton<AzureDnsChallengeHandler2>()
                         .AddSingleton<CloudflareDnsChallengeHandler>()
                         .AddSingleton<DnsProviderFactory>()
                         .AddSingleton<CertRenewer>()
@@ -67,7 +67,7 @@ namespace LetsEncryptManager.Cli
 
                     svc.AddHttpClient<CloudflareHttpClient>(c =>
                     {
-                        c.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer");
+                        c.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", cfKey);
                     });
 
                     svc.AddHostedService<CertManagerService>();

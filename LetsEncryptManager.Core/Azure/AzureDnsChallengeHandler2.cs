@@ -29,7 +29,16 @@ namespace LetsEncryptManager.Core.Challenges
 
         public async Task<ICleanableDnsRecord> HandleAsync(string type, string fullyQualifiedName, string value, KnownCertificatesConfigEntry config)
         {
-            if(type != "TXT")
+            var defaultSub = await this.client.GetDefaultSubscriptionAsync();
+
+            if(defaultSub == null)
+            {
+                throw new Exception("Could not get default subscription for Azure DNS handling, are you logged in?");
+            }
+
+            logger.LogInformation("[Azure DNS 2]: Found default subscription {0}", defaultSub.Id);
+
+            if (type != "TXT")
             {
                 throw new Exception("Couldn't use provided DNS type: " + type);
             }
