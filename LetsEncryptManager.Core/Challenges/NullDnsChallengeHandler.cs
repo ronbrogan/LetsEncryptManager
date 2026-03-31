@@ -25,6 +25,10 @@ namespace LetsEncryptManager.Core.Challenges
                 this.value = value;
             }
 
+            public string TopLevelDomain => name;
+
+            public string RecordName => name;
+
             public Task CleanAsync()
             {
                 Console.WriteLine($"Cleaned up record: [{type}] {name}:{value}");

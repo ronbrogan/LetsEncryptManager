@@ -59,7 +59,6 @@ namespace LetsEncryptManager.Core.Orchestration
                     catch(Exception e)
                     {
                         logger.LogError(e, "Error while trying to renew '{0}'", cert.Key);
-                        throw;
                     }
                 }
             }

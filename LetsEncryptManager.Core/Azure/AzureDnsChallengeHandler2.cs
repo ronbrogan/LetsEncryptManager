@@ -169,6 +169,10 @@ namespace LetsEncryptManager.Core.Challenges
                 this.value = value;
             }
 
+            public string TopLevelDomain => this.zone.Data.Name;
+
+            public string RecordName => this.record.Data.Name;
+
             public Task CleanAsync()
             {
                 return client.CleanRecordSet(zone, record, value);

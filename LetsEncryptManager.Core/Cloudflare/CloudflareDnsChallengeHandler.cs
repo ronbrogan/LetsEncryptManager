@@ -137,7 +137,7 @@ namespace LetsEncryptManager.Core.Cloudflare
                 existingRecord = record;
             }
 
-            var resp = await cf.CreateDnsZoneRecord(zone.id, RecordType.TXT, name, value);
+            var resp = await cf.CreateDnsZoneRecord(zone.id, RecordType.TXT, name, $"\"{value}\"", ttl: 60);
 
             if(!resp.success)
             {
@@ -162,6 +162,10 @@ namespace LetsEncryptManager.Core.Cloudflare
                 this.client = client;
                 this.value = value;
             }
+
+            public string TopLevelDomain => this.zone.name;
+
+            public string RecordName => this.record.name;
 
             public Task CleanAsync()
             {

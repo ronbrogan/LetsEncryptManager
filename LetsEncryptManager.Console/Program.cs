@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Polly;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -62,6 +63,17 @@ namespace LetsEncryptManager.Cli
                         .AddSingleton<CertRenewer>()
                         .AddSingleton<CertRenewalOrchestrator>()
                         .AddLogging(l => l.AddConsole());
+
+                    svc.AddHttpClient("AcmeHttp", (svc, client) =>
+                    {
+                        client.BaseAddress = new Uri(svc.GetRequiredService<ManagerConfig>().CertificateAuthorityUrl);
+                    })
+                    .AddTransientHttpErrorPolicy(builder => builder.WaitAndRetryAsync(new[]
+                    {
+                        TimeSpan.FromSeconds(1),
+                        TimeSpan.FromSeconds(5),
+                        TimeSpan.FromSeconds(10)
+                    }));
 
                     var cfKey = host.Configuration.GetValue("ManagerConfig:CloudflareKey", string.Empty);
 

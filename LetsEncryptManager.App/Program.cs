@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Polly;
 using System;
 
 namespace LetsEncryptManager.App;
@@ -52,6 +53,17 @@ public static class Program
             .AddSingleton<IDnsChallengeHandler, AzureDnsChallengeHandler2>()
             .AddSingleton<CertRenewer>()
             .AddSingleton<CertRenewalOrchestrator>();
+
+        builder.Services.AddHttpClient("AcmeHttp", (svc, client) =>
+        {
+            client.BaseAddress = new Uri(svc.GetRequiredService<ManagerConfig>().CertificateAuthorityUrl);
+        })
+        .AddTransientHttpErrorPolicy(builder => builder.WaitAndRetryAsync(new[]
+        {
+            TimeSpan.FromSeconds(1),
+            TimeSpan.FromSeconds(5),
+            TimeSpan.FromSeconds(10)
+        }));
 
         builder.Build().Run();
     }

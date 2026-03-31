@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,6 +23,7 @@ namespace LetsEncryptManager.Core
     {
         private AcmeProtocolClient? client;
         private readonly ILogger logger;
+        private readonly IHttpClientFactory httpClientFactory;
         private readonly CertRenewerConfig config;
         private readonly IAccountStore accountStore;
         private readonly DnsProviderFactory dnsProviderFactory;
@@ -32,9 +34,11 @@ namespace LetsEncryptManager.Core
             IAccountStore accountStore,
             DnsProviderFactory dnsProviderFactory,
             ICertificateStore certStore,
-            ILogger<CertRenewer> logger)
+            ILogger<CertRenewer> logger,
+            IHttpClientFactory httpClientFactory)
         {
             this.logger = logger;
+            this.httpClientFactory = httpClientFactory;
             this.config = new CertRenewerConfig(config.CertContactEmail, config.CertificateAuthorityUrl);
             this.accountStore = accountStore;
             this.dnsProviderFactory = dnsProviderFactory;
@@ -61,6 +65,7 @@ namespace LetsEncryptManager.Core
             }
 
             var order = await client.CreateOrderAsync(hostnames);
+            await Task.Delay(1000); // Give the server a moment to process the order before we request the details, helps avoid "order not ready" errors
             logger.LogInformation("[{0}]@{1}ms Created order: {2} ", certName, stopwatch.ElapsedMilliseconds, order.OrderUrl);
 
             await PerformChallengesAsync(order, config);
@@ -114,9 +119,11 @@ namespace LetsEncryptManager.Core
                 var dnsHandler = this.dnsProviderFactory.GetDnsProvider(config.DnsProvider);
 
                 // Create requested DNS record, keep reference to remove after challenge passes
-                logger.LogInformation("[{0}]@{1}ms Creating DNS record '{2}'", auth.Identifier.Value, stopwatch.ElapsedMilliseconds, cd.DnsRecordName);
+                logger.LogInformation("[{0}]@{1}ms Creating DNS record '{2}'='{3}'", auth.Identifier.Value, stopwatch.ElapsedMilliseconds, cd.DnsRecordName, cd.DnsRecordValue);
                 var createdRecord = await dnsHandler.HandleAsync(cd.DnsRecordType, cd.DnsRecordName, cd.DnsRecordValue, config);
                 logger.LogInformation("[{0}]@{1}ms Created DNS record successfully", auth.Identifier.Value, stopwatch.ElapsedMilliseconds);
+
+                await DnsUtils.WaitUntilTxtRecord(cd.DnsRecordName, cd.DnsRecordValue, CancellationToken.None);
 
                 try
                 {
@@ -128,11 +135,10 @@ namespace LetsEncryptManager.Core
                     var retries = 1;
                     do
                     {
-                        await Task.Delay(1000 * retries);
+                        await Task.Delay(Math.Min(5000 * retries, 60 * 1000 * 5));
 
                         try
                         {
-
                             auth = await client.GetAuthorizationDetailsAsync(authUrl);
                             logger.LogInformation("[{0}]@{1}ms challenge status: {2}", auth.Identifier.Value, stopwatch.ElapsedMilliseconds, auth.Status);
                         }
@@ -146,15 +152,14 @@ namespace LetsEncryptManager.Core
                         {
                             var authJson = JsonConvert.SerializeObject(auth, Formatting.Indented);
                             logger.LogInformation("[{0}]@{1}ms challenge is invalid: {2}", auth.Identifier.Value, stopwatch.ElapsedMilliseconds, authJson);
-                            break;
                         }
 
                         retries++;
-                    } while (auth.Status != "valid" && retries <= 5);
+                    } while (auth.Status != "valid" && retries <= 20);
 
                     if (auth.Status != "valid")
                     {
-                        exceptions.Add(new Exception($"Challenge validation was unsuccessful: [{dnsChallenge.Status}]{dnsChallenge.Error}\r\nAuthStatus: [{auth.Status}]"));
+                        exceptions.Add(new Exception($"Challenge validation was unsuccessful: [DNS:{dnsChallenge.Status}]{dnsChallenge.Error}\r\n [AUTH:{auth.Status}]{auth.Challenges[0].Error}"));
                     }
                 }
                 finally
@@ -196,7 +201,9 @@ namespace LetsEncryptManager.Core
                 account = null;
             }
 
-            var client = new AcmeProtocolClient(caUri, null, account?.Account, account?.Signer, usePostAsGet: true, logger: logger);
+            var http = this.httpClientFactory.CreateClient("AcmeHttp");
+
+            var client = new AcmeProtocolClient(http, null, account?.Account, account?.Signer, usePostAsGet: true, logger: logger);
             client.Directory = await client.GetDirectoryAsync();
 
             // get nonce, used to communicate w/ server
