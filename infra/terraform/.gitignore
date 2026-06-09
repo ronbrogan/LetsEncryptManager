@@ -1,0 +1,14 @@
+# Local state
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.tfstate.lock.info
+
+# Variable files with real values
+terraform.tfvars
+*.auto.tfvars
+
+# Crash logs / plans
+crash.log
+crash.*.log
+*.tfplan

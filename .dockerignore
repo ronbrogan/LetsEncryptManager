@@ -1,0 +1,13 @@
+**/bin
+**/obj
+**/.vs
+**/.vscode
+.git
+.github
+.gitignore
+infra
+**/*.user
+**/local.settings.json
+**/local.appsettings.json
+README.md
+LICENSE

@@ -1,0 +1,37 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored.
+
+# --- Subscription / location ---
+subscription_id     = "00000000-0000-0000-0000-000000000000"
+location            = "eastus"
+resource_group_name = "my-existing-rg"
+
+# --- Existing App Configuration store ---
+app_config_name                = "my-appconfig"
+app_config_resource_group_name = "my-existing-rg"
+
+# --- Existing Key Vault ---
+key_vault_name                = "my-keyvault"
+key_vault_resource_group_name = "my-existing-rg"
+
+# --- Azure DNS zones for DNS-01 challenges (full resource IDs). ---
+# Leave as [] if every cert uses Cloudflare. Zones can be cross-RG / cross-subscription.
+dns_zone_ids = [
+  "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/dns-rg/providers/Microsoft.Network/dnszones/example.com",
+]
+
+# --- Image (defaults to ghcr.io/ronbrogan/letsencryptmanager:latest) ---
+# image = "ghcr.io/ronbrogan/letsencryptmanager:latest"
+
+# --- Schedule (UTC). Default is daily at 05:00. ---
+# cron_expression = "0 5 * * *"
+
+# --- Optional resource-name / sizing overrides ---
+# identity_name              = "id-letsencryptmanager"
+# environment_name           = "cae-letsencryptmanager"
+# job_name                   = "caj-letsencryptmanager"
+# log_analytics_name         = "log-letsencryptmanager"
+# cpu                        = 0.5
+# memory                     = "1Gi"
+# replica_timeout_in_seconds = 1800
+# replica_retry_limit        = 1
+# tags = { app = "letsencryptmanager" }
