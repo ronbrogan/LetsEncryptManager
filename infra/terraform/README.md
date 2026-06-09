@@ -8,7 +8,8 @@ image (from GHCR) once daily to renew certificates.
 | Resource | Purpose |
 | --- | --- |
 | User-assigned managed identity | Identity the job runs as (`DefaultAzureCredential`). |
-| Role assignments | `App Configuration Data Reader`, `Key Vault Certificates Officer`, `Key Vault Secrets Officer`, and `DNS Zone Contributor` (per zone). |
+| Role assignments | `App Configuration Data Reader` and `DNS Zone Contributor` (per zone). |
+| Key Vault access policy | Secrets `Get/List/Set`, Certificates `Get/List/Import` for the identity (this vault uses the access-policy model, not RBAC). |
 | Log Analytics workspace | Backs the Container Apps environment; holds container logs. |
 | Container Apps environment | Hosts the job. |
 | Container Apps Job | Cron-scheduled (default `0 5 * * *` UTC), pulls the public GHCR image, runs once, exits. |
@@ -30,9 +31,10 @@ are referenced (data sources), not created.
    az provider register --namespace Microsoft.App
    az provider register --namespace Microsoft.OperationalInsights
    ```
-4. **Key Vault must use Azure RBAC** for its permission model (this config grants RBAC roles). If
-   your vault still uses access policies, either switch it to RBAC, or tell us and we'll swap the
-   role assignments for an `access_policy` block.
+4. **Key Vault permission model:** this config grants access via an **access policy**
+   (`azurerm_key_vault_access_policy`), matching a vault where `enableRbacAuthorization = false`.
+   If your vault uses Azure RBAC instead, swap that resource for `Key Vault Secrets User` +
+   `Key Vault Certificates Officer` role assignments.
 
 ## Usage
 

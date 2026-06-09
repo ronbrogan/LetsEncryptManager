@@ -38,18 +38,19 @@ resource "azurerm_role_assignment" "appconfig_data_reader" {
   principal_id         = azurerm_user_assigned_identity.job.principal_id
 }
 
-# Read/write certificates in Key Vault.
-resource "azurerm_role_assignment" "kv_certificates_officer" {
-  scope                = data.azurerm_key_vault.kv.id
-  role_definition_name = "Key Vault Certificates Officer"
-  principal_id         = azurerm_user_assigned_identity.job.principal_id
-}
+# Key Vault access for the identity.
+#
+# This vault uses the *access policy* permission model (enableRbacAuthorization = false),
+# so RBAC role assignments are ignored — access must be granted via an access policy.
+# Secrets: Get/Set (ACME account + resolving the CloudflareKey App Config reference).
+# Certificates: Get/Import (read existing cert, import renewed PFX).
+resource "azurerm_key_vault_access_policy" "job" {
+  key_vault_id = data.azurerm_key_vault.kv.id
+  tenant_id    = data.azurerm_key_vault.kv.tenant_id
+  object_id    = azurerm_user_assigned_identity.job.principal_id
 
-# Read/write the ACME account + related secrets in Key Vault.
-resource "azurerm_role_assignment" "kv_secrets_officer" {
-  scope                = data.azurerm_key_vault.kv.id
-  role_definition_name = "Key Vault Secrets Officer"
-  principal_id         = azurerm_user_assigned_identity.job.principal_id
+  secret_permissions      = ["Get", "List", "Set"]
+  certificate_permissions = ["Get", "List", "Import"]
 }
 
 # Write TXT records to each Azure DNS zone used for DNS-01 challenges.
@@ -133,7 +134,6 @@ resource "azurerm_container_app_job" "renew" {
   # depend on them to keep apply ordering sane.
   depends_on = [
     azurerm_role_assignment.appconfig_data_reader,
-    azurerm_role_assignment.kv_certificates_officer,
-    azurerm_role_assignment.kv_secrets_officer,
+    azurerm_key_vault_access_policy.job,
   ]
 }

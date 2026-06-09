@@ -24,8 +24,6 @@ namespace LetsEncryptManager.Cli
 
         static async Task Main(string[] args)
         {
-            Exception ex = null;
-
             var azConfigUrl = Environment.GetEnvironmentVariable(AzConfigKey);
 
             if (azConfigUrl == null)
@@ -85,16 +83,11 @@ namespace LetsEncryptManager.Cli
                     svc.AddHostedService<CertManagerService>();
                 });
 
-            try
-            {
-                using(var host = builder.Build())
-                    await host.RunAsync();
-            }
-            catch(Exception e)
-            {
-                ex = e;
-                Console.WriteLine(e.Message);
-            }
+            // Let any startup/run exception propagate: the runtime prints the full stack trace
+            // and exits non-zero, so the Container Apps Job reports the execution as Failed
+            // (and applies the configured retry) instead of silently "succeeding".
+            using (var host = builder.Build())
+                await host.RunAsync();
         }
     }
 
