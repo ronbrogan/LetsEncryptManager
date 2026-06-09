@@ -29,7 +29,20 @@ namespace LetsEncryptManager.Core.Challenges
             {
                 var result = await client.GetHostEntryAsync(answer.NSDName.Value);
 
-                var authoritativeClient = new LookupClient(result.AddressList);
+                // Hosting environments (e.g. Azure Container Apps) commonly have IPv4-only egress.
+                // Querying an IPv6 nameserver address there fails with SocketException (101)
+                // "Network is unreachable", so only target the IPv4 (A record) addresses.
+                var addresses = result.AddressList
+                    .Where(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                    .ToArray();
+
+                if (addresses.Length == 0)
+                {
+                    Console.WriteLine($"[DnsUtils] No IPv4 address found for nameserver {answer.NSDName.Value}, skipping");
+                    continue;
+                }
+
+                var authoritativeClient = new LookupClient(addresses);
 
                 while(true)
                 {
