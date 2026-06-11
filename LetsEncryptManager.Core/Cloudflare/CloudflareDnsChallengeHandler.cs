@@ -45,7 +45,10 @@ namespace LetsEncryptManager.Core.Cloudflare
             logger.LogInformation("[Cloudflare DNS]: Using relative name {0}", relativeName);
 
 
-            var set = await GetOrCreateRecordSetAsync(zone, relativeName, value);
+            var set = await GetOrCreateRecordSetAsync(zone, fullyQualifiedName, relativeName, value);
+
+            var pollTimeout = TimeSpan.FromMinutes(3);
+            var sw = System.Diagnostics.Stopwatch.StartNew();
 
             while (true)
             {
@@ -53,18 +56,19 @@ namespace LetsEncryptManager.Core.Cloudflare
 
                 var fetched = await cf.GetDnsZoneRecord(zone.id, set.id);
 
-                if (!fetched.success || !fetched.result.content.Contains(value))
-                {
-                    await Task.Delay(1000);
-                    continue;
-                }
-
-                if (fetched.result.content.Contains(value))
+                if (fetched.success && fetched.result.content != null && fetched.result.content.Contains(value))
                 {
                     set = fetched.result;
                     logger.LogInformation("[Cloudflare DNS]: Updated value found, done!");
                     break;
                 }
+
+                if (sw.Elapsed > pollTimeout)
+                {
+                    throw new TimeoutException($"[Cloudflare DNS]: TXT record {fullyQualifiedName} did not reflect the expected value within {pollTimeout.TotalSeconds:n0}s");
+                }
+
+                await Task.Delay(1000);
             }
 
             return new CloudflareCleanableDnsRecord(this, zone, set, value);
@@ -115,26 +119,45 @@ namespace LetsEncryptManager.Core.Cloudflare
             var resp = await cf.DeleteDnsZoneRecord(zone.id, record.id);
         }
 
-        private async Task<RecordResponse> GetOrCreateRecordSetAsync(Zone zone, string name, string value)
+        private async Task<RecordResponse> GetOrCreateRecordSetAsync(Zone zone, string fqdn, string name, string value)
         {
-            var records = await cf.GetDnsZoneRecords(zone.id, RecordType.TXT, name);
+            // Cloudflare returns (and filters name.exact on) the fully-qualified record name,
+            // so look up by FQDN rather than the relative name.
+            var records = await cf.GetDnsZoneRecords(zone.id, RecordType.TXT, fqdn);
 
             RecordResponse? existingRecord = null;
 
             foreach(var record in records.result)
             {
-                if(record.name != name)
+                if(!string.Equals(record.name, fqdn, StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
 
-                if (record.content == value)
+                // Cloudflare stores TXT content wrapped in quotes, so compare with Contains.
+                if (record.content != null && record.content.Contains(value))
                 {
-                    logger.LogInformation("[Cloudflare DNS]: Found existing record set for {0} with value", name);
+                    logger.LogInformation("[Cloudflare DNS]: Found existing record set for {0} with expected value", fqdn);
                     return record;
                 }
 
                 existingRecord = record;
+            }
+
+            // A stale challenge record from a previous run that wasn't cleaned up: reuse it by
+            // overwriting in place instead of leaving it behind / creating a duplicate.
+            if (existingRecord != null)
+            {
+                logger.LogInformation("[Cloudflare DNS]: Overwriting stale TXT record {0} ({1})", fqdn, existingRecord.id);
+
+                var ow = await cf.OverwriteDnsZoneRecord(zone.id, existingRecord.id, RecordType.TXT, name, $"\"{value}\"", ttl: 60);
+
+                if(!ow.success)
+                {
+                    logger.LogError("[Cloudflare DNS]: Request failed to overwrite TXT record {0}:{1}\r\n{2}", fqdn, value, string.Join("\r\n", ow.errors.Select(e => e.message)));
+                }
+
+                return ow.result;
             }
 
             var resp = await cf.CreateDnsZoneRecord(zone.id, RecordType.TXT, name, $"\"{value}\"", ttl: 60);

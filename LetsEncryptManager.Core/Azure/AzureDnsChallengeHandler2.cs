@@ -60,25 +60,30 @@ namespace LetsEncryptManager.Core.Challenges
 
 
             var set = await GetOrCreateRecordSetAsync(zone, zone.Id.ResourceGroupName, zoneName, relativeName, value);
-           
+
+            var pollTimeout = TimeSpan.FromMinutes(3);
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+
             while(true)
             {
                 logger.LogInformation("[Azure DNS 2]: Polling record set for updated value");
 
                 var fetched = await zone.GetDnsTxtRecordAsync(relativeName);
 
-                if(fetched == null || fetched.Value == null)
-                {
-                    await Task.Delay(1000);
-                    continue;
-                }
-
-                if (fetched.Value.Data.DnsTxtRecords.Any(v => v.Values.Any(vv => vv == value)))
+                if(fetched != null && fetched.Value != null
+                    && fetched.Value.Data.DnsTxtRecords.Any(v => v.Values.Any(vv => vv == value)))
                 {
                     set = fetched.Value;
                     logger.LogInformation("[Azure DNS 2]: Updated value found, done!");
                     break;
                 }
+
+                if (sw.Elapsed > pollTimeout)
+                {
+                    throw new TimeoutException($"[Azure DNS 2]: TXT record {relativeName} did not reflect the expected value within {pollTimeout.TotalSeconds:n0}s");
+                }
+
+                await Task.Delay(1000);
             }
 
             return new AzureCleanableDnsRecord2(this, zone, set, value);
@@ -135,16 +140,28 @@ namespace LetsEncryptManager.Core.Challenges
 
             var exists = await records.ExistsAsync(name);
 
+            // Start from any existing values (e.g. a stale record from a previous run that
+            // wasn't cleaned up, or a coexisting challenge) and ADD our value to them.
+            // Previously this returned the existing set unchanged, so the new challenge value
+            // was never written and the polling loop above would spin forever.
+            var txtRecords = new List<DnsTxtRecordInfo>();
+
             if (exists)
             {
-                return await records.GetAsync(name);
+                var existing = await records.GetAsync(name);
+                txtRecords = existing.Value.Data.DnsTxtRecords.ToList();
+
+                if (txtRecords.Any(r => r.Values.Contains(value)))
+                {
+                    return existing.Value;
+                }
             }
 
             var rrec = new DnsTxtRecordInfo();
             rrec.Values.Add(value);
-            var newRecs = new List<DnsTxtRecordInfo> { rrec };
+            txtRecords.Add(rrec);
 
-            var op = await records.CreateOrUpdateAsync(WaitUntil.Completed, name, ArmDnsModelFactory.DnsTxtRecordData(DnsTxtRecordResource.CreateResourceIdentifier(zone.Data.Id.SubscriptionId, resourceGroup, zoneName, name), name, ttl: 1, txtRecords: newRecs));
+            var op = await records.CreateOrUpdateAsync(WaitUntil.Completed, name, ArmDnsModelFactory.DnsTxtRecordData(DnsTxtRecordResource.CreateResourceIdentifier(zone.Data.Id.SubscriptionId, resourceGroup, zoneName, name), name, ttl: 1, txtRecords: txtRecords));
 
             if(!op.HasCompleted || !op.HasValue)
             {
