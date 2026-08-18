@@ -88,7 +88,7 @@ namespace LetsEncryptManager.Core
 
             var pfx = pkiCert.Export(PkiArchiveFormat.Pkcs12, keys.PrivateKey);
 
-            await this.certStore.StorePfxCertificateAsync(certName, pfx);
+            await this.certStore.StorePfxCertificateAsync(certName, pfx, config);
             logger.LogInformation("[{0}]@{1}ms Saved certificate to '{2}'", certName, stopwatch.ElapsedMilliseconds, certStore.GetType().Name);
 
             stopwatch.Stop();

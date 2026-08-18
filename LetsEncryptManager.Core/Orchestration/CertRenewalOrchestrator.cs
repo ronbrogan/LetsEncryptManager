@@ -67,7 +67,7 @@ namespace LetsEncryptManager.Core.Orchestration
         private async Task<bool> ShouldRenew(string cert, KnownCertificatesConfigEntry entry)
         {
             var hostnames = entry.Hostnames;
-            var info = await certStore.GetCertInfo(cert);
+            var info = await certStore.GetCertInfo(cert, entry);
 
             if (info == null)
             {

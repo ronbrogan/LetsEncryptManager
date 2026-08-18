@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using LetsEncryptManager.Core.Configuration;
+using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 
@@ -14,7 +15,7 @@ namespace LetsEncryptManager.Core.CertificateStore
             Directory.CreateDirectory(root);
         }
 
-        public async Task<CertInfo?> GetCertInfo(string identifier)
+        public async Task<CertInfo?> GetCertInfo(string identifier, KnownCertificatesConfigEntry config)
         {
             var path = Path.Combine(this.root, identifier + ".pfx");
 
@@ -29,7 +30,7 @@ namespace LetsEncryptManager.Core.CertificateStore
             return new CertInfo(identifier, cert);
         }
 
-        public Task StorePfxCertificateAsync(string identifier, byte[] pfx)
+        public Task StorePfxCertificateAsync(string identifier, byte[] pfx, KnownCertificatesConfigEntry config)
         {
             var path = Path.Combine(this.root, identifier + ".pfx");
 
