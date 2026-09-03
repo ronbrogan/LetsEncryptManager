@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace LetsEncryptManager.Core.Orchestration
@@ -81,13 +80,7 @@ namespace LetsEncryptManager.Core.Orchestration
                 return true;
             }
 
-            if(NameMatchesHost(hostnames.First(), info.SubjectName) == false)
-            {
-                logger.LogInformation("Renwing '{0}' as existing cert subject name does not match first host of '{1}'", cert, hostnames.First());
-                return true;
-            }
-
-            var allMatchSan = hostnames.All(h => NameMatchesHost(h, info.SubjectAlternativeNames));
+            var allMatchSan = hostnames.All(h => info.SubjectAlternativeNames.Contains(h, StringComparer.OrdinalIgnoreCase));
             if(allMatchSan == false)
             {
                 logger.LogInformation("Renwing '{0}' as all hostnames are not contained in cert SAN", cert);
@@ -97,13 +90,6 @@ namespace LetsEncryptManager.Core.Orchestration
             logger.LogInformation("Skipping renew for '{0}'", cert);
 
             return false;
-        }
-
-        private bool NameMatchesHost(string host, string name)
-        {
-            var pattern = new Regex("=" + Regex.Escape(host), RegexOptions.IgnoreCase);
-
-            return pattern.IsMatch(name);
         }
     }
 }

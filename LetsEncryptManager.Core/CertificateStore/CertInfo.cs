@@ -9,7 +9,7 @@ namespace LetsEncryptManager.Core.CertificateStore
         public string Identifier { get; }
         public DateTimeOffset Expiration { get; }
         public string SubjectName { get; set; }
-        public string SubjectAlternativeNames { get; }
+        public string[] SubjectAlternativeNames { get; }
 
         public CertInfo(string identifier, X509Certificate2 cert)
         {
